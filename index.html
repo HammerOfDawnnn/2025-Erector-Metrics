@@ -163,12 +163,15 @@
 
             const headers = sheetData[0];
 
-            sheetData.slice(1).forEach((row) => {
+            sheetData.slice(1).forEach((row, index) => {
+                // Skip the "TOTAL" row
+                if (row[0] && row[0].toString().toUpperCase() === "TOTAL") return;
+
                 if (row.every(cell => cell === undefined || cell === null || cell === "")) return;
 
                 const rowData = {};
-                headers.forEach((header, index) => {
-                    rowData[header] = row[index] || "";
+                headers.forEach((header, columnIndex) => {
+                    rowData[header] = row[columnIndex] || "";
                 });
 
                 pageData[pageKey].push(rowData);
