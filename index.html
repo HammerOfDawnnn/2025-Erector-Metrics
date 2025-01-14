@@ -74,7 +74,7 @@
         <select id="pageSelect">
             <option value="">-- Select Page --</option>
             <option value="DASHBOARD">DASHBOARD</option>
-            <option value="TRIR_&_LITR">TRIR & LTIR</option>
+            <option value="TRIR_&_LTIR">TRIR & LTIR</option>
             <option value="MAN_HOURS">MAN HOURS</option>
             <option value="OSSM_HOURS">OSSM HOURS</option>
         </select>
@@ -96,7 +96,7 @@
         const erectorList = [];
         const pageData = {
             "DASHBOARD": [],
-            "TRIR_&_LITR": [],
+            "TRIR_&_LTIR": [],
             "MAN_HOURS": [],
             "OSSM_HOURS": []
         };
@@ -163,19 +163,25 @@
 
             const headers = sheetData[0];
 
-            sheetData.slice(1).forEach((row, index) => {
-                // Skip the "TOTAL" row
-                if (row[0] && row[0].toString().toUpperCase() === "TOTAL") return;
+            console.log(`Parsing sheet: ${sheetName}`);
+            console.log(`Headers for ${sheetName}:`, headers);
 
-                if (row.every(cell => cell === undefined || cell === null || cell === "")) return;
+            sheetData.slice(1).forEach((row, index) => {
+                if (row.every(cell => cell === undefined || cell === null || cell === "")) {
+                    console.log(`Skipping empty row ${index + 2} in ${sheetName}`);
+                    return;
+                }
 
                 const rowData = {};
                 headers.forEach((header, columnIndex) => {
                     rowData[header] = row[columnIndex] || "";
                 });
 
+                console.log(`Row parsed for ${sheetName}:`, rowData);
                 pageData[pageKey].push(rowData);
             });
+
+            console.log(`Parsed data for ${sheetName}:`, pageData[pageKey]);
         }
 
         function parseErectorSheet(sheetName, sheetData) {
