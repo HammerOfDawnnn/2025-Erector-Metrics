@@ -114,6 +114,18 @@
         const dataTableHead = dataTable.querySelector('thead');
         const dataTableBody = dataTable.querySelector('tbody');
 
+        // Load data from local storage on page load
+        window.onload = function () {
+            const storedData = localStorage.getItem('dashboardData');
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                Object.assign(pageData, parsedData.pageData);
+                parsedData.erectorList.forEach(erector => erectorList.push(erector));
+                populateErectorDropdown();
+                alert("Loaded previously uploaded data.");
+            }
+        };
+
         fileInput.addEventListener('change', handleFile);
 
         function handleFile(event) {
@@ -130,6 +142,10 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
+                // Reset data
+                erectorList.length = 0;
+                Object.keys(pageData).forEach(key => pageData[key].length = 0);
+
                 // Parse sheets
                 workbook.SheetNames.forEach(sheetName => {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
@@ -140,6 +156,9 @@
                         parseErectorSheet(sheetName, sheetData);
                     }
                 });
+
+                // Save to local storage
+                localStorage.setItem('dashboardData', JSON.stringify({ pageData, erectorList }));
 
                 populateErectorDropdown();
                 alert("File uploaded and data updated successfully.");
@@ -156,8 +175,8 @@
 
             sheetData.slice(1).forEach(row => {
                 const rowData = {};
-                row.forEach((cell, index) => {
-                    rowData[headers[index]] = cell || "";
+                headers.forEach((header, index) => {
+                    rowData[header] = row[index] || "";
                 });
                 pageData[pageKey].push(rowData);
             });
