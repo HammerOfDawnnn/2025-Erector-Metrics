@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,6 +53,10 @@
             margin-bottom: 1rem;
         }
 
+        input[type="file"] {
+            margin-bottom: 1rem;
+        }
+
         .hidden {
             display: none;
         }
@@ -62,6 +67,9 @@
         <h1>Dashboard Viewer</h1>
     </header>
     <main>
+        <label for="fileInput">Upload Updated Excel File:</label>
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
+
         <label for="pageSelect">Select Page:</label>
         <select id="pageSelect">
             <option value="">-- Select Page --</option>
@@ -92,52 +100,91 @@
     </main>
 
     <script>
-        // Erector list dynamically injected
-        const erectorList = [
-            "BOWMAN",
-            "CUMBERLAND STEEL",
-            "CUMBERLAND WELDING",
-            "ELEVATED STEEL",
-            "GARDNER WATSON",
-            "GS STEEL",
-            "HEAD STEEL",
-            "KWS",
-            "METROLINA",
-            "MIDWEST",
-            "NASH FAB",
-            "NEWTON STEEL",
-            "P DECKING",
-            "PEIDMONT",
-            "RED CEDAR",
-            "SENTRY",
-            "SME",
-            "SPG",
-            "WHITE & ASSOCIATES",
-            "Erector20"
-        ];
-
-        const erectorSelect = document.getElementById('erectorSelect');
-
-        erectorList.forEach(erector => {
-            const option = document.createElement('option');
-            option.value = erector;
-            option.textContent = erector;
-            erectorSelect.appendChild(option);
-        });
-
-        const pageSelect = document.getElementById('pageSelect');
-        const erectorSelectContainer = document.getElementById('erectorSelectContainer');
-        const dataTable = document.getElementById('dataTable');
-        const dataTableBody = dataTable.querySelector('tbody');
-
-        // Example: Replace with dynamic data pulled from backend/Excel file
+        const erectorList = [];
         const pageData = {
             "Dashboard": [],
             "TRIR_LITR": [],
             "Man_Hours": []
         };
 
-        // Handle page selection
+        const fileInput = document.getElementById('fileInput');
+        const pageSelect = document.getElementById('pageSelect');
+        const erectorSelectContainer = document.getElementById('erectorSelectContainer');
+        const erectorSelect = document.getElementById('erectorSelect');
+        const dataTable = document.getElementById('dataTable');
+        const dataTableBody = dataTable.querySelector('tbody');
+
+        fileInput.addEventListener('change', handleFile);
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+
+            if (!file) {
+                alert("No file selected.");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Parse sheets
+                workbook.SheetNames.forEach(sheetName => {
+                    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+
+                    if (sheetName === "DASHBOARD" || sheetName === "TRIR & LTIR" || sheetName === "MAN HOURS") {
+                        parseMainSheet(sheetName, sheetData);
+                    } else {
+                        parseErectorSheet(sheetName, sheetData);
+                    }
+                });
+
+                populateErectorDropdown();
+                alert("File uploaded and data updated successfully.");
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseMainSheet(sheetName, sheetData) {
+            const pageKey = sheetName.replace(/ & /g, '_').replace(/ /g, '_');
+            pageData[pageKey] = [];
+
+            sheetData.slice(1).forEach(row => {
+                if (row.length > 1) {
+                    pageData[pageKey].push({
+                        Criteria: row[0],
+                        Details: row[1]
+                    });
+                }
+            });
+        }
+
+        function parseErectorSheet(sheetName, sheetData) {
+            erectorList.push(sheetName);
+            sheetData.slice(1).forEach(row => {
+                if (row.length > 1) {
+                    pageData["Dashboard"].push({
+                        Erector: sheetName,
+                        Criteria: row[0],
+                        Details: row[1]
+                    });
+                }
+            });
+        }
+
+        function populateErectorDropdown() {
+            erectorSelect.innerHTML = '<option value="">-- Select Erector --</option>';
+            erectorList.forEach(erector => {
+                const option = document.createElement('option');
+                option.value = erector;
+                option.textContent = erector;
+                erectorSelect.appendChild(option);
+            });
+        }
+
         pageSelect.addEventListener('change', function () {
             const selectedPage = this.value;
 
@@ -151,11 +198,10 @@
                 erectorSelectContainer.classList.remove('hidden');
             } else {
                 erectorSelectContainer.classList.add('hidden');
-                populateTable(pageData[selectedPage] || []);
+                populateTable(pageData[selectedPage.replace(/ /g, '_').replace(/&/g, '_')] || []);
             }
         });
 
-        // Handle erector selection
         erectorSelect.addEventListener('change', function () {
             const selectedErector = this.value;
 
@@ -164,21 +210,10 @@
                 return;
             }
 
-            // Consolidate data for the selected erector
-            const consolidatedData = [];
-            Object.entries(pageData).forEach(([page, entries]) => {
-                entries.forEach(entry => {
-                    if (entry.Erector === selectedErector) {
-                        consolidatedData.push({ Criteria: `${page} - ${entry.Criteria}`, Details: entry.Details });
-                    }
-                });
-            });
-
-            // Populate table with consolidated data
+            const consolidatedData = pageData["Dashboard"].filter(entry => entry.Erector === selectedErector);
             populateTable(consolidatedData);
         });
 
-        // Populate table with data
         function populateTable(data) {
             dataTableBody.innerHTML = '';
 
