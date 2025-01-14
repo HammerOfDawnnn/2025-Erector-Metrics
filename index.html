@@ -76,6 +76,7 @@
             <option value="Dashboard">DASHBOARD</option>
             <option value="TRIR_LITR">TRIR & LTIR</option>
             <option value="Man_Hours">MAN HOURS</option>
+            <option value="OSSM_HOURS">OSSM HOURS</option>
         </select>
 
         <div id="erectorSelectContainer" class="hidden">
@@ -88,10 +89,7 @@
 
         <table id="dataTable" class="hidden">
             <thead>
-                <tr>
-                    <th>Criteria</th>
-                    <th>Details</th>
-                </tr>
+                <!-- Table headers will be dynamically injected here -->
             </thead>
             <tbody>
                 <!-- Dynamic content will be injected here -->
@@ -104,7 +102,8 @@
         const pageData = {
             "Dashboard": [],
             "TRIR_LITR": [],
-            "Man_Hours": []
+            "Man_Hours": [],
+            "OSSM_HOURS": []
         };
 
         const fileInput = document.getElementById('fileInput');
@@ -112,6 +111,7 @@
         const erectorSelectContainer = document.getElementById('erectorSelectContainer');
         const erectorSelect = document.getElementById('erectorSelect');
         const dataTable = document.getElementById('dataTable');
+        const dataTableHead = dataTable.querySelector('thead');
         const dataTableBody = dataTable.querySelector('tbody');
 
         fileInput.addEventListener('change', handleFile);
@@ -134,7 +134,7 @@
                 workbook.SheetNames.forEach(sheetName => {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
 
-                    if (sheetName === "DASHBOARD" || sheetName === "TRIR & LTIR" || sheetName === "MAN HOURS") {
+                    if (sheetName === "DASHBOARD" || sheetName === "TRIR & LTIR" || sheetName === "MAN HOURS" || sheetName === "OSSM HOURS") {
                         parseMainSheet(sheetName, sheetData);
                     } else {
                         parseErectorSheet(sheetName, sheetData);
@@ -152,13 +152,14 @@
             const pageKey = sheetName.replace(/ & /g, '_').replace(/ /g, '_');
             pageData[pageKey] = [];
 
+            const headers = sheetData[0]; // First row as headers
+
             sheetData.slice(1).forEach(row => {
-                if (row.length > 1) {
-                    pageData[pageKey].push({
-                        Criteria: row[0],
-                        Details: row[1]
-                    });
-                }
+                const rowData = {};
+                row.forEach((cell, index) => {
+                    rowData[headers[index]] = cell || "";
+                });
+                pageData[pageKey].push(rowData);
             });
         }
 
@@ -215,19 +216,32 @@
         });
 
         function populateTable(data) {
-            dataTableBody.innerHTML = '';
+            dataTableHead.innerHTML = "";
+            dataTableBody.innerHTML = "";
 
+            if (data.length === 0) {
+                dataTable.classList.add('hidden');
+                return;
+            }
+
+            // Generate table headers dynamically
+            const headers = Object.keys(data[0]);
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            dataTableHead.appendChild(headerRow);
+
+            // Generate table rows dynamically
             data.forEach(rowData => {
                 const tr = document.createElement('tr');
-
-                const tdCriteria = document.createElement('td');
-                tdCriteria.textContent = rowData.Criteria;
-                tr.appendChild(tdCriteria);
-
-                const tdDetails = document.createElement('td');
-                tdDetails.textContent = rowData.Details;
-                tr.appendChild(tdDetails);
-
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = rowData[header] || "";
+                    tr.appendChild(td);
+                });
                 dataTableBody.appendChild(tr);
             });
 
