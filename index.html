@@ -74,6 +74,7 @@
             <label for="erectorSelect">Search Erector:</label>
             <select id="erectorSelect">
                 <option value="">-- Select Erector --</option>
+                <!-- Erectors dynamically injected here -->
             </select>
         </div>
 
@@ -91,41 +92,50 @@
     </main>
 
     <script>
-        // Example data for pages and erectors
-        const pageData = {
-            "Dashboard": [
-                { "Erector": "BOWMAN", "Criteria": "Injury", "Details": 5 },
-                { "Erector": "CUMBERLAND STEEL", "Criteria": "Illness", "Details": 3 }
-            ],
-            "TRIR_LITR": [
-                { "Erector": "BOWMAN", "Criteria": "Lost Time", "Details": 2 },
-                { "Erector": "CUMBERLAND STEEL", "Criteria": "Recordable", "Details": 4 }
-            ],
-            "Man_Hours": [
-                { "Erector": "BOWMAN", "Criteria": "Hours Worked", "Details": 1000 },
-                { "Erector": "CUMBERLAND STEEL", "Criteria": "Hours Worked", "Details": 800 }
-            ]
-        };
+        // Erector list dynamically injected
+        const erectorList = [
+            "BOWMAN",
+            "CUMBERLAND STEEL",
+            "CUMBERLAND WELDING",
+            "ELEVATED STEEL",
+            "GARDNER WATSON",
+            "GS STEEL",
+            "HEAD STEEL",
+            "KWS",
+            "METROLINA",
+            "MIDWEST",
+            "NASH FAB",
+            "NEWTON STEEL",
+            "P DECKING",
+            "PEIDMONT",
+            "RED CEDAR",
+            "SENTRY",
+            "SME",
+            "SPG",
+            "WHITE & ASSOCIATES",
+            "Erector20"
+        ];
+
+        const erectorSelect = document.getElementById('erectorSelect');
+
+        erectorList.forEach(erector => {
+            const option = document.createElement('option');
+            option.value = erector;
+            option.textContent = erector;
+            erectorSelect.appendChild(option);
+        });
 
         const pageSelect = document.getElementById('pageSelect');
         const erectorSelectContainer = document.getElementById('erectorSelectContainer');
-        const erectorSelect = document.getElementById('erectorSelect');
         const dataTable = document.getElementById('dataTable');
         const dataTableBody = dataTable.querySelector('tbody');
 
-        // Populate the erector dropdown dynamically
-        function populateErectorDropdown() {
-            const erectors = new Set();
-            Object.values(pageData).flat().forEach(entry => erectors.add(entry.Erector));
-
-            erectorSelect.innerHTML = '<option value="">-- Select Erector --</option>';
-            erectors.forEach(erector => {
-                const option = document.createElement('option');
-                option.value = erector;
-                option.textContent = erector;
-                erectorSelect.appendChild(option);
-            });
-        }
+        // Example: Replace with dynamic data pulled from backend/Excel file
+        const pageData = {
+            "Dashboard": [],
+            "TRIR_LITR": [],
+            "Man_Hours": []
+        };
 
         // Handle page selection
         pageSelect.addEventListener('change', function () {
@@ -139,7 +149,6 @@
 
             if (selectedPage === "Dashboard") {
                 erectorSelectContainer.classList.remove('hidden');
-                populateErectorDropdown();
             } else {
                 erectorSelectContainer.classList.add('hidden');
                 populateTable(pageData[selectedPage] || []);
