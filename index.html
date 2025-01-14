@@ -177,6 +177,8 @@
             console.log(`Headers for ${sheetName}:`, headers); // Debugging log
 
             sheetData.slice(1).forEach((row, rowIndex) => {
+                console.log(`Parsing row ${rowIndex + 2} in ${sheetName}:`, row); // Log each row for debugging
+
                 if (row.every(cell => cell === undefined || cell === null || cell === "")) {
                     console.log(`Skipping empty row ${rowIndex + 2} in ${sheetName}`); // Debugging log
                     return;
@@ -192,6 +194,7 @@
                     rowData.IsTotal = true; // Mark this as a total row
                 }
 
+                console.log(`Row parsed for ${sheetName}:`, rowData); // Log parsed row
                 pageData[pageKey].push(rowData);
             });
 
