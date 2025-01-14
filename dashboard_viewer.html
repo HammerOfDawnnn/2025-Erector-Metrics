@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        select {
+            padding: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        input[type="text"] {
+            padding: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dashboard Viewer</h1>
+    </header>
+    <main>
+        <label for="pageSelect">Select Page:</label>
+        <select id="pageSelect">
+            <option value="">-- Select Page --</option>
+            <option value="Dashboard">DASHBOARD</option>
+            <option value="TRIR_LITR">TRIR & LTIR</option>
+            <option value="Man_Hours">MAN HOURS</option>
+        </select>
+
+        <div id="erectorSelectContainer" class="hidden">
+            <label for="erectorSelect">Search Erector:</label>
+            <select id="erectorSelect">
+                <option value="">-- Select Erector --</option>
+            </select>
+        </div>
+
+        <table id="dataTable" class="hidden">
+            <thead>
+                <tr>
+                    <th>Criteria</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dynamic content will be injected here -->
+            </tbody>
+        </table>
+    </main>
+
+    <script>
+        // Example data for pages and erectors
+        const pageData = {
+            "Dashboard": [
+                { "Erector": "BOWMAN", "Criteria": "Injury", "Details": 5 },
+                { "Erector": "CUMBERLAND STEEL", "Criteria": "Illness", "Details": 3 }
+            ],
+            "TRIR_LITR": [
+                { "Erector": "BOWMAN", "Criteria": "Lost Time", "Details": 2 },
+                { "Erector": "CUMBERLAND STEEL", "Criteria": "Recordable", "Details": 4 }
+            ],
+            "Man_Hours": [
+                { "Erector": "BOWMAN", "Criteria": "Hours Worked", "Details": 1000 },
+                { "Erector": "CUMBERLAND STEEL", "Criteria": "Hours Worked", "Details": 800 }
+            ]
+        };
+
+        const pageSelect = document.getElementById('pageSelect');
+        const erectorSelectContainer = document.getElementById('erectorSelectContainer');
+        const erectorSelect = document.getElementById('erectorSelect');
+        const dataTable = document.getElementById('dataTable');
+        const dataTableBody = dataTable.querySelector('tbody');
+
+        // Populate the erector dropdown dynamically
+        function populateErectorDropdown() {
+            const erectors = new Set();
+            Object.values(pageData).flat().forEach(entry => erectors.add(entry.Erector));
+
+            erectorSelect.innerHTML = '<option value="">-- Select Erector --</option>';
+            erectors.forEach(erector => {
+                const option = document.createElement('option');
+                option.value = erector;
+                option.textContent = erector;
+                erectorSelect.appendChild(option);
+            });
+        }
+
+        // Handle page selection
+        pageSelect.addEventListener('change', function () {
+            const selectedPage = this.value;
+
+            if (!selectedPage) {
+                erectorSelectContainer.classList.add('hidden');
+                dataTable.classList.add('hidden');
+                return;
+            }
+
+            if (selectedPage === "Dashboard") {
+                erectorSelectContainer.classList.remove('hidden');
+                populateErectorDropdown();
+            } else {
+                erectorSelectContainer.classList.add('hidden');
+                populateTable(pageData[selectedPage] || []);
+            }
+        });
+
+        // Handle erector selection
+        erectorSelect.addEventListener('change', function () {
+            const selectedErector = this.value;
+
+            if (!selectedErector) {
+                dataTable.classList.add('hidden');
+                return;
+            }
+
+            // Consolidate data for the selected erector
+            const consolidatedData = [];
+            Object.entries(pageData).forEach(([page, entries]) => {
+                entries.forEach(entry => {
+                    if (entry.Erector === selectedErector) {
+                        consolidatedData.push({ Criteria: `${page} - ${entry.Criteria}`, Details: entry.Details });
+                    }
+                });
+            });
+
+            // Populate table with consolidated data
+            populateTable(consolidatedData);
+        });
+
+        // Populate table with data
+        function populateTable(data) {
+            dataTableBody.innerHTML = '';
+
+            data.forEach(rowData => {
+                const tr = document.createElement('tr');
+
+                const tdCriteria = document.createElement('td');
+                tdCriteria.textContent = rowData.Criteria;
+                tr.appendChild(tdCriteria);
+
+                const tdDetails = document.createElement('td');
+                tdDetails.textContent = rowData.Details;
+                tr.appendChild(tdDetails);
+
+                dataTableBody.appendChild(tr);
+            });
+
+            dataTable.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
