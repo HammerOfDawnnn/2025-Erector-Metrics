@@ -64,7 +64,7 @@
 </head>
 <body>
     <header>
-        <h1>2025 Sub Erector Metrics with Brayan</h1>
+        <h1>Dashboard Viewer</h1>
     </header>
     <main>
         <label for="fileInput">Upload Updated Excel File:</label>
@@ -186,6 +186,12 @@
                 headers.forEach((header, index) => {
                     rowData[header] = row[index] || "";
                 });
+
+                // Include TOTAL rows
+                if (rowData.Worklog && rowData.Worklog.trim().toLowerCase() === "total") {
+                    rowData.IsTotal = true; // Mark this as a total row
+                }
+
                 pageData[pageKey].push(rowData);
             });
 
