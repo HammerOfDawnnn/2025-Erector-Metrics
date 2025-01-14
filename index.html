@@ -150,6 +150,8 @@
                 workbook.SheetNames.forEach(sheetName => {
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
 
+                    console.log(`Parsing sheet: ${sheetName}`); // Debugging log
+
                     if (sheetName === "DASHBOARD" || sheetName === "TRIR & LTIR" || sheetName === "MAN HOURS" || sheetName === "OSSM HOURS") {
                         parseMainSheet(sheetName, sheetData);
                     } else {
@@ -172,25 +174,35 @@
             pageData[pageKey] = [];
 
             const headers = sheetData[0]; // First row as headers
+            console.log(`Headers for ${sheetName}:`, headers); // Debugging log
 
-            sheetData.slice(1).forEach(row => {
+            sheetData.slice(1).forEach((row, rowIndex) => {
+                if (row.every(cell => cell === undefined || cell === null || cell === "")) {
+                    console.log(`Skipping empty row ${rowIndex + 2} in ${sheetName}`); // Debugging log
+                    return;
+                }
+
                 const rowData = {};
                 headers.forEach((header, index) => {
                     rowData[header] = row[index] || "";
                 });
                 pageData[pageKey].push(rowData);
             });
+
+            console.log(`Parsed data for ${sheetName}:`, pageData[pageKey]); // Debugging log
         }
 
         function parseErectorSheet(sheetName, sheetData) {
             erectorList.push(sheetName);
-            sheetData.slice(1).forEach(row => {
+            sheetData.slice(1).forEach((row, rowIndex) => {
                 if (row.length > 1) {
                     pageData["Dashboard"].push({
                         Erector: sheetName,
                         Criteria: row[0],
                         Details: row[1]
                     });
+                } else {
+                    console.log(`Skipping invalid row ${rowIndex + 2} in ${sheetName}`); // Debugging log
                 }
             });
         }
