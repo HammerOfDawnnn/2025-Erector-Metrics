@@ -1,271 +1,28 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Viewer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-        }
-
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        main {
-            padding: 2rem;
-        }
-
-        select {
-            padding: 0.5rem;
-            font-size: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 0.75rem;
-            text-align: left;
-        }
-
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-
-        input[type="text"] {
-            padding: 0.5rem;
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-
-        input[type="file"] {
-            margin-bottom: 1rem;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
+    <title>2025 Sub-Erector Metrics</title>
 </head>
 <body>
-    <header>
-        <h1>Dashboard Viewer</h1>
-    </header>
-    <main>
-        <label for="fileInput">Upload Updated Excel File:</label>
-        <input type="file" id="fileInput" accept=".xlsx, .xls">
-
-        <label for="pageSelect">Select Page:</label>
-        <select id="pageSelect">
-            <option value="">-- Select Page --</option>
-            <option value="DASHBOARD">DASHBOARD</option>
-            <option value="TRIR_&_LTIR">TRIR & LTIR</option>
-            <option value="MAN_HOURS">MAN HOURS</option>
-            <option value="OSSM_HOURS">OSSM HOURS</option>
-        </select>
-
-        <div id="erectorSelectContainer" class="hidden">
-            <label for="erectorSelect">Search Erector:</label>
-            <select id="erectorSelect">
-                <option value="">-- Select Erector --</option>
-            </select>
-        </div>
-
-        <table id="dataTable" class="hidden">
-            <thead></thead>
-            <tbody></tbody>
-        </table>
-    </main>
+    <h1>2025 Sub-Erector Metrics</h1>
+    <p>This page displays metrics data loaded from a JSON file.</p>
+    
+    <div id="data-container">
+        <h2>Data Preview</h2>
+        <pre id="json-data"></pre>
+    </div>
 
     <script>
-        const erectorList = [];
-        const pageData = {
-            "DASHBOARD": [],
-            "TRIR_&_LTIR": [],
-            "MAN_HOURS": [],
-            "OSSM_HOURS": []
-        };
-
-        const fileInput = document.getElementById('fileInput');
-        const pageSelect = document.getElementById('pageSelect');
-        const erectorSelectContainer = document.getElementById('erectorSelectContainer');
-        const erectorSelect = document.getElementById('erectorSelect');
-        const dataTable = document.getElementById('dataTable');
-        const dataTableHead = dataTable.querySelector('thead');
-        const dataTableBody = dataTable.querySelector('tbody');
-
-        window.onload = function () {
-            const storedData = localStorage.getItem('dashboardData');
-            if (storedData) {
-                const parsedData = JSON.parse(storedData);
-                Object.assign(pageData, parsedData.pageData);
-                parsedData.erectorList.forEach(erector => erectorList.push(erector));
-                populateErectorDropdown();
-            }
-        };
-
-        fileInput.addEventListener('change', handleFile);
-
-        function handleFile(event) {
-            const file = event.target.files[0];
-
-            if (!file) {
-                alert("No file selected.");
-                return;
-            }
-
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-
-                erectorList.length = 0;
-                Object.keys(pageData).forEach(key => pageData[key].length = 0);
-
-                workbook.SheetNames.forEach(sheetName => {
-                    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-
-                    if (["DASHBOARD", "TRIR & LTIR", "MAN HOURS", "OSSM HOURS"].includes(sheetName)) {
-                        parseMainSheet(sheetName, sheetData);
-                    } else {
-                        parseErectorSheet(sheetName, sheetData);
-                    }
-                });
-
-                localStorage.setItem('dashboardData', JSON.stringify({ pageData, erectorList }));
-
-                populateErectorDropdown();
-                alert("File uploaded and data updated successfully.");
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        function parseMainSheet(sheetName, sheetData) {
-            const pageKey = sheetName.replace(/ & /g, '_').replace(/ /g, '_');
-            pageData[pageKey] = [];
-
-            const headers = sheetData[0];
-
-            console.log(`Parsing sheet: ${sheetName}`);
-            console.log(`Headers for ${sheetName}:`, headers);
-
-            sheetData.slice(1).forEach((row, index) => {
-                if (row.every(cell => cell === undefined || cell === null || cell === "")) {
-                    console.log(`Skipping empty row ${index + 2} in ${sheetName}`);
-                    return;
-                }
-
-                const rowData = {};
-                headers.forEach((header, columnIndex) => {
-                    rowData[header] = row[columnIndex] || "";
-                });
-
-                console.log(`Row parsed for ${sheetName}:`, rowData);
-                pageData[pageKey].push(rowData);
-            });
-
-            console.log(`Parsed data for ${sheetName}:`, pageData[pageKey]);
-        }
-
-        function parseErectorSheet(sheetName, sheetData) {
-            erectorList.push(sheetName);
-            sheetData.slice(1).forEach((row) => {
-                if (row.length > 1) {
-                    pageData["DASHBOARD"].push({
-                        Erector: sheetName,
-                        Criteria: row[0],
-                        Details: row[1]
-                    });
-                }
-            });
-        }
-
-        function populateErectorDropdown() {
-            erectorSelect.innerHTML = '<option value="">-- Select Erector --</option>';
-            erectorList.forEach(erector => {
-                const option = document.createElement('option');
-                option.value = erector;
-                option.textContent = erector;
-                erectorSelect.appendChild(option);
-            });
-        }
-
-        pageSelect.addEventListener('change', function () {
-            const selectedPage = this.value;
-
-            if (!selectedPage) {
-                erectorSelectContainer.classList.add('hidden');
-                dataTable.classList.add('hidden');
-                return;
-            }
-
-            if (selectedPage === "DASHBOARD") {
-                erectorSelectContainer.classList.remove('hidden');
-            } else {
-                erectorSelectContainer.classList.add('hidden');
-                populateTable(pageData[selectedPage.replace(/ /g, '_').replace(/&/g, '_')] || []);
-            }
-        });
-
-        erectorSelect.addEventListener('change', function () {
-            const selectedErector = this.value;
-
-            if (!selectedErector) {
-                dataTable.classList.add('hidden');
-                return;
-            }
-
-            const consolidatedData = pageData["DASHBOARD"].filter(entry => entry.Erector === selectedErector);
-            populateTable(consolidatedData);
-        });
-
-        function populateTable(data) {
-            dataTableHead.innerHTML = "";
-            dataTableBody.innerHTML = "";
-
-            if (data.length === 0) {
-                dataTable.classList.add('hidden');
-                return;
-            }
-
-            const headers = Object.keys(data[0]);
-            const headerRow = document.createElement('tr');
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            dataTableHead.appendChild(headerRow);
-
-            data.forEach(rowData => {
-                const tr = document.createElement('tr');
-                headers.forEach(header => {
-                    const td = document.createElement('td');
-                    td.textContent = rowData[header] || "";
-                    tr.appendChild(td);
-                });
-                dataTableBody.appendChild(tr);
-            });
-
-            dataTable.classList.remove('hidden');
-        }
+        // Fetch and display the JSON data
+        fetch('2025_SUB_ERECTOR_METRICS.json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('json-data').textContent = JSON.stringify(data, null, 4);
+            })
+            .catch(error => console.error('Error loading JSON:', error));
     </script>
 </body>
 </html>
