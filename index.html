@@ -25,15 +25,40 @@
         th {
             background-color: #f4f4f4;
         }
+        .search-container {
+            margin: 20px 0;
+        }
+        .search-container input {
+            padding: 10px;
+            width: 300px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .search-container button {
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-container button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <h1>2025 Sub-Erector Metrics</h1>
-    <p>This page displays metrics data loaded from a JSON file in a table format.</p>
+    <p>This page displays metrics data loaded from a JSON file and allows searching by "Worklog" or "Erector".</p>
+
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Search by Worklog or Erector...">
+        <button onclick="searchData()">Search</button>
+    </div>
 
     <div id="data-container">
-        <h2>Data Table</h2>
-        <select id="sheet-selector" onchange="loadSheetData()"></select>
+        <h2>Search Results</h2>
         <table id="data-table">
             <thead></thead>
             <tbody></tbody>
@@ -43,27 +68,33 @@
     <script>
         let jsonData;
 
-        // Fetch JSON data and populate sheet selector
+        // Fetch JSON data
         fetch('2025_SUB_ERECTOR_METRICS.json')
             .then(response => response.json())
             .then(data => {
                 jsonData = data;
-                const selector = document.getElementById('sheet-selector');
-                Object.keys(data).forEach(sheet => {
-                    const option = document.createElement('option');
-                    option.value = sheet;
-                    option.textContent = sheet;
-                    selector.appendChild(option);
-                });
-                loadSheetData();
             })
             .catch(error => console.error('Error loading JSON:', error));
 
-        // Load data for the selected sheet
-        function loadSheetData() {
-            const sheetName = document.getElementById('sheet-selector').value;
-            const data = jsonData[sheetName];
+        // Search and display results
+        function searchData() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const results = [];
 
+            Object.keys(jsonData).forEach(sheet => {
+                jsonData[sheet].forEach(row => {
+                    const rowValues = Object.values(row).map(value => String(value).toLowerCase());
+                    if (rowValues.some(value => value.includes(query))) {
+                        results.push({ sheet, ...row });
+                    }
+                });
+            });
+
+            displayResults(results);
+        }
+
+        // Display results in a table
+        function displayResults(results) {
             const tableHead = document.querySelector('#data-table thead');
             const tableBody = document.querySelector('#data-table tbody');
 
@@ -71,10 +102,10 @@
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
 
-            if (data.length > 0) {
+            if (results.length > 0) {
                 // Populate table header
                 const headerRow = document.createElement('tr');
-                Object.keys(data[0]).forEach(key => {
+                Object.keys(results[0]).forEach(key => {
                     const th = document.createElement('th');
                     th.textContent = key;
                     headerRow.appendChild(th);
@@ -82,7 +113,7 @@
                 tableHead.appendChild(headerRow);
 
                 // Populate table body
-                data.forEach(row => {
+                results.forEach(row => {
                     const tr = document.createElement('tr');
                     Object.values(row).forEach(value => {
                         const td = document.createElement('td');
@@ -94,7 +125,7 @@
             } else {
                 const emptyRow = document.createElement('tr');
                 const emptyCell = document.createElement('td');
-                emptyCell.textContent = 'No data available';
+                emptyCell.textContent = 'No results found';
                 emptyCell.colSpan = 100; // Span all columns
                 emptyRow.appendChild(emptyCell);
                 tableBody.appendChild(emptyRow);
