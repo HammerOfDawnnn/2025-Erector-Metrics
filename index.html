@@ -25,17 +25,19 @@
         th {
             background-color: #f4f4f4;
         }
-        .search-container {
+        .controls {
             margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .search-container input {
+        .controls input {
             padding: 10px;
             width: 300px;
-            margin-right: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        .search-container button {
+        .controls button {
             padding: 10px;
             background-color: #007BFF;
             color: white;
@@ -43,22 +45,28 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .search-container button:hover {
+        .controls button:hover {
             background-color: #0056b3;
+        }
+        .controls select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <h1>2025 Sub-Erector Metrics</h1>
-    <p>This page displays metrics data loaded from a JSON file and allows searching by "Worklog" or "Erector".</p>
+    <p>This page displays metrics data loaded from a JSON file and allows filtering by "Worklog" or "Erector".</p>
 
-    <div class="search-container">
+    <div class="controls">
+        <select id="sheet-selector" onchange="loadSheetData()"></select>
         <input type="text" id="search-input" placeholder="Search by Worklog or Erector...">
         <button onclick="searchData()">Search</button>
     </div>
 
     <div id="data-container">
-        <h2>Search Results</h2>
+        <h2>Data Table</h2>
         <table id="data-table">
             <thead></thead>
             <tbody></tbody>
@@ -67,34 +75,46 @@
 
     <script>
         let jsonData;
+        let currentSheet = "";
 
-        // Fetch JSON data
+        // Fetch JSON data and populate sheet selector
         fetch('2025_SUB_ERECTOR_METRICS.json')
             .then(response => response.json())
             .then(data => {
                 jsonData = data;
+                const selector = document.getElementById('sheet-selector');
+                Object.keys(data).forEach(sheet => {
+                    const option = document.createElement('option');
+                    option.value = sheet;
+                    option.textContent = sheet;
+                    selector.appendChild(option);
+                });
+                currentSheet = Object.keys(data)[0];
+                loadSheetData();
             })
             .catch(error => console.error('Error loading JSON:', error));
 
-        // Search and display results
+        // Load data for the selected sheet
+        function loadSheetData() {
+            currentSheet = document.getElementById('sheet-selector').value;
+            const data = jsonData[currentSheet];
+            displayResults(data);
+        }
+
+        // Search and display results for the current sheet
         function searchData() {
             const query = document.getElementById('search-input').value.toLowerCase();
-            const results = [];
-
-            Object.keys(jsonData).forEach(sheet => {
-                jsonData[sheet].forEach(row => {
-                    const rowValues = Object.values(row).map(value => String(value).toLowerCase());
-                    if (rowValues.some(value => value.includes(query))) {
-                        results.push({ sheet, ...row });
-                    }
-                });
-            });
-
+            const data = jsonData[currentSheet];
+            const results = data.filter(row => 
+                Object.values(row).some(value => 
+                    String(value).toLowerCase().includes(query)
+                )
+            );
             displayResults(results);
         }
 
-        // Display results in a table
-        function displayResults(results) {
+        // Display data in a table
+        function displayResults(data) {
             const tableHead = document.querySelector('#data-table thead');
             const tableBody = document.querySelector('#data-table tbody');
 
@@ -102,10 +122,10 @@
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
 
-            if (results.length > 0) {
+            if (data.length > 0) {
                 // Populate table header
                 const headerRow = document.createElement('tr');
-                Object.keys(results[0]).forEach(key => {
+                Object.keys(data[0]).forEach(key => {
                     const th = document.createElement('th');
                     th.textContent = key;
                     headerRow.appendChild(th);
@@ -113,7 +133,7 @@
                 tableHead.appendChild(headerRow);
 
                 // Populate table body
-                results.forEach(row => {
+                data.forEach(row => {
                     const tr = document.createElement('tr');
                     Object.values(row).forEach(value => {
                         const td = document.createElement('td');
