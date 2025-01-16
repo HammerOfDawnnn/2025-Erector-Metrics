@@ -5,24 +5,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2025 Sub-Erector Metrics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
     <h1>2025 Sub-Erector Metrics</h1>
-    <p>This page displays metrics data loaded from a JSON file.</p>
-    
+    <p>This page displays metrics data loaded from a JSON file in a table format.</p>
+
     <div id="data-container">
-        <h2>Data Preview</h2>
-        <pre id="json-data"></pre>
+        <h2>Data Table</h2>
+        <select id="sheet-selector" onchange="loadSheetData()"></select>
+        <table id="data-table">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
     </div>
 
     <script>
-        // Fetch and display the JSON data
+        let jsonData;
+
+        // Fetch JSON data and populate sheet selector
         fetch('2025_SUB_ERECTOR_METRICS.json')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('json-data').textContent = JSON.stringify(data, null, 4);
+                jsonData = data;
+                const selector = document.getElementById('sheet-selector');
+                Object.keys(data).forEach(sheet => {
+                    const option = document.createElement('option');
+                    option.value = sheet;
+                    option.textContent = sheet;
+                    selector.appendChild(option);
+                });
+                loadSheetData();
             })
             .catch(error => console.error('Error loading JSON:', error));
+
+        // Load data for the selected sheet
+        function loadSheetData() {
+            const sheetName = document.getElementById('sheet-selector').value;
+            const data = jsonData[sheetName];
+
+            const tableHead = document.querySelector('#data-table thead');
+            const tableBody = document.querySelector('#data-table tbody');
+
+            // Clear existing table content
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (data.length > 0) {
+                // Populate table header
+                const headerRow = document.createElement('tr');
+                Object.keys(data[0]).forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = key;
+                    headerRow.appendChild(th);
+                });
+                tableHead.appendChild(headerRow);
+
+                // Populate table body
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    Object.values(row).forEach(value => {
+                        const td = document.createElement('td');
+                        td.textContent = value;
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.textContent = 'No data available';
+                emptyCell.colSpan = 100; // Span all columns
+                emptyRow.appendChild(emptyCell);
+                tableBody.appendChild(emptyRow);
+            }
+        }
     </script>
 </body>
 </html>
